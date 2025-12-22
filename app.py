@@ -53,14 +53,18 @@ COUNT_COL = "count(distinct class_id)"
 # ======================
 if uploaded_file:
     try:
+        # ----------------------
         # Read data
+        # ----------------------
         df_current = pd.read_excel(uploaded_file, sheet_name="Sheet1")
         df_last = pd.read_excel(uploaded_file, sheet_name="Sheet2")
 
         df_current.columns = df_current.columns.str.strip()
         df_last.columns = df_last.columns.str.strip()
 
+        # ----------------------
         # Merge
+        # ----------------------
         merged = df_last.merge(
             df_current,
             on=["school_code", "class_type"],
@@ -68,24 +72,30 @@ if uploaded_file:
             suffixes=("_last", "_current")
         )
 
+        # ----------------------
         # Fill NA
+        # ----------------------
         merged[f"{COUNT_COL}_last"] = merged[f"{COUNT_COL}_last"].fillna(0)
         merged[f"{COUNT_COL}_current"] = merged[f"{COUNT_COL}_current"].fillna(0)
 
+        # ----------------------
         # Diff
+        # ----------------------
         merged["diff"] = (
             merged[f"{COUNT_COL}_current"]
             - merged[f"{COUNT_COL}_last"]
         )
 
+        # ----------------------
         # Name mapping
+        # ----------------------
         merged["class_type_name"] = merged["class_type"].map(type_map)
         merged["school_name"] = merged["school_code"].map(school_map).fillna(
             merged["school_code"].astype(str)
         )
 
         # ======================
-        # Sidebar Filters 🆕
+        # Sidebar Filters
         # ======================
         st.sidebar.header("🔎 Filters")
 
@@ -106,30 +116,51 @@ if uploaded_file:
         # ======================
         # Totals (based on filter)
         # ======================
-        total_diff = filtered["diff"].sum()
-
-        # Self check
-        st.subheader("🔍 Data Check")
-        st.write({
-            "Filtered diff sum": int(total_diff),
-            "Row count": len(filtered)
-        })
+        total_current = filtered[f"{COUNT_COL}_current"].sum()
+        total_last = filtered[f"{COUNT_COL}_last"].sum()
+        total_diff = total_current - total_last
 
         # ======================
-        # Bilingual Summary 🆕
+        # Weekly Totals
+        # ======================
+        st.subheader("📊 Weekly Totals | 周汇总")
+
+        col1, col2, col3 = st.columns(3)
+
+        col1.metric("Current Week | 本周", int(total_current))
+        col2.metric("Last Week | 上周", int(total_last))
+        col3.metric(
+            "Difference | 变化",
+            int(total_diff),
+            delta=int(total_diff)
+        )
+
+        # ======================
+        # Bilingual Summary
         # ======================
         st.subheader("🤖 Auto Summary | 自动总结")
 
-        # English
         if total_diff > 0:
-            st.success(f"**EN:** Overall, **{int(total_diff)} more classes** than last week.")
-            st.success(f"**CN:** 整体相比上一周 **增加了 {int(total_diff)} 节课**。")
+            st.success(
+                f"**EN:** Total classes increased by **{int(total_diff)}** "
+                f"(from {int(total_last)} to {int(total_current)})."
+            )
+            st.success(
+                f"**CN:** 课堂总数相比上一周 **增加了 {int(total_diff)} 节**，"
+                f"由 {int(total_last)} 节增长至 {int(total_current)} 节。"
+            )
         elif total_diff < 0:
-            st.warning(f"**EN:** Overall, **{int(-total_diff)} fewer classes** than last week.")
-            st.warning(f"**CN:** 整体相比上一周 **减少了 {int(-total_diff)} 节课**。")
+            st.warning(
+                f"**EN:** Total classes decreased by **{int(-total_diff)}** "
+                f"(from {int(total_last)} to {int(total_current)})."
+            )
+            st.warning(
+                f"**CN:** 课堂总数相比上一周 **减少了 {int(-total_diff)} 节**，"
+                f"由 {int(total_last)} 节降至 {int(total_current)} 节。"
+            )
         else:
-            st.info("**EN:** Overall class count is unchanged.")
-            st.info("**CN:** 整体课堂数量与上一周持平。")
+            st.info("**EN:** Total class count remains unchanged.")
+            st.info("**CN:** 课堂总数与上一周保持一致。")
 
         # ======================
         # Top Changes
@@ -141,22 +172,21 @@ if uploaded_file:
             st.markdown("### 📈 Top Increases | 主要增幅来源")
             for _, row in inc.iterrows():
                 st.markdown(
-                    f"- **{row['school_name']}** ｜ {row['class_type_name']} ： "
-                    f"+{int(row['diff'])}"
+                    f"- **{row['school_name']}** ｜ {row['class_type_name']} ： +{int(row['diff'])}"
                 )
 
         if not dec.empty:
             st.markdown("### 📉 Top Decreases | 主要下降来源")
             for _, row in dec.iterrows():
                 st.markdown(
-                    f"- **{row['school_name']}** ｜ {row['class_type_name']} ： "
-                    f"{int(row['diff'])}"
+                    f"- **{row['school_name']}** ｜ {row['class_type_name']} ： {int(row['diff'])}"
                 )
 
         # ======================
         # Table
         # ======================
         st.subheader("📋 Detailed Comparison | 明细对比")
+
         st.dataframe(
             filtered.sort_values("diff", ascending=False)[
                 [
