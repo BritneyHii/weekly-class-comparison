@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from io import StringIO
 
 # ======================
 # Page Config
@@ -11,14 +12,6 @@ st.set_page_config(
 
 st.title("📊 Weekly Class Comparison Tool")
 st.caption("Compare current week vs last week by school & class type")
-
-# ======================
-# Upload Excel
-# ======================
-uploaded_file = st.file_uploader(
-    "Upload Excel file (Sheet1 = Current Week, Sheet2 = Last Week)",
-    type=["xlsx"]
-)
 
 # ======================
 # Mapping
@@ -49,16 +42,62 @@ school_map = {
 COUNT_COL = "count(distinct class_id)"
 
 # ======================
-# Main Logic
+# Data Input Mode
 # ======================
-if uploaded_file:
-    try:
-        # ----------------------
-        # Read data
-        # ----------------------
+st.subheader("📥 Data Input Method | 数据输入方式")
+
+data_mode = st.radio(
+    "Choose data source",
+    ["Upload Excel", "Paste Data"],
+    horizontal=True
+)
+
+df_current = None
+df_last = None
+
+# ======================
+# Upload Excel
+# ======================
+if data_mode == "Upload Excel":
+    uploaded_file = st.file_uploader(
+        "Upload Excel file (Sheet1 = Current Week, Sheet2 = Last Week)",
+        type=["xlsx"]
+    )
+
+    if uploaded_file:
         df_current = pd.read_excel(uploaded_file, sheet_name="Sheet1")
         df_last = pd.read_excel(uploaded_file, sheet_name="Sheet2")
 
+# ======================
+# Paste Data
+# ======================
+else:
+    st.markdown("### 📋 Paste Current Week Data (CSV)")
+    current_text = st.text_area(
+        "Current Week",
+        height=160,
+        placeholder="school_code,class_type,count(distinct class_id)\n415,1,120"
+    )
+
+    st.markdown("### 📋 Paste Last Week Data (CSV)")
+    last_text = st.text_area(
+        "Last Week",
+        height=160,
+        placeholder="school_code,class_type,count(distinct class_id)\n415,1,110"
+    )
+
+    if current_text and last_text:
+        df_current = pd.read_csv(StringIO(current_text))
+        df_last = pd.read_csv(StringIO(last_text))
+
+# ======================
+# Main Logic
+# ======================
+if df_current is not None and df_last is not None:
+    try:
+        # ----------------------
+        # Clean columns
+        # ----------------------
         df_current.columns = df_current.columns.str.strip()
         df_last.columns = df_last.columns.str.strip()
 
@@ -114,7 +153,7 @@ if uploaded_file:
             filtered = filtered[filtered["class_type_name"] == selected_class]
 
         # ======================
-        # Totals (based on filter)
+        # Totals
         # ======================
         total_current = filtered[f"{COUNT_COL}_current"].sum()
         total_last = filtered[f"{COUNT_COL}_last"].sum()
@@ -202,8 +241,8 @@ if uploaded_file:
         )
 
     except Exception as e:
-        st.error("❌ Failed to process file. Please check format.")
+        st.error("❌ Failed to process data. Please check format.")
         st.exception(e)
 
 else:
-    st.info("👆 Please upload an Excel file to start analysis.")
+    st.info("👆 Please upload an Excel file or paste data to start analysis.")
