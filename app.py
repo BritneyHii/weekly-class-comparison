@@ -42,14 +42,13 @@ school_map = {
 COUNT_COL = "count(distinct class_id)"
 
 # ======================
-# Data Input Mode
+# Data Input Mode (FIXED)
 # ======================
 st.subheader("📥 Data Input Method | 数据输入方式")
 
-data_mode = st.radio(
+data_mode = st.selectbox(
     "Choose data source",
-    ["Upload Excel", "Paste Data"],
-    horizontal=True
+    ["Upload Excel", "Paste Data"]
 )
 
 df_current = None
@@ -64,29 +63,31 @@ if data_mode == "Upload Excel":
         type=["xlsx"]
     )
 
-    if uploaded_file:
+    if uploaded_file is not None:
         df_current = pd.read_excel(uploaded_file, sheet_name="Sheet1")
         df_last = pd.read_excel(uploaded_file, sheet_name="Sheet2")
 
 # ======================
 # Paste Data
 # ======================
-else:
+elif data_mode == "Paste Data":
     st.markdown("### 📋 Paste Current Week Data (CSV)")
+
     current_text = st.text_area(
-        "Current Week",
-        height=160,
+        "Current Week Data",
+        height=180,
         placeholder="school_code,class_type,count(distinct class_id)\n415,1,120"
     )
 
     st.markdown("### 📋 Paste Last Week Data (CSV)")
+
     last_text = st.text_area(
-        "Last Week",
-        height=160,
+        "Last Week Data",
+        height=180,
         placeholder="school_code,class_type,count(distinct class_id)\n415,1,110"
     )
 
-    if current_text and last_text:
+    if current_text.strip() and last_text.strip():
         df_current = pd.read_csv(StringIO(current_text))
         df_last = pd.read_csv(StringIO(last_text))
 
@@ -95,15 +96,11 @@ else:
 # ======================
 if df_current is not None and df_last is not None:
     try:
-        # ----------------------
         # Clean columns
-        # ----------------------
         df_current.columns = df_current.columns.str.strip()
         df_last.columns = df_last.columns.str.strip()
 
-        # ----------------------
         # Merge
-        # ----------------------
         merged = df_last.merge(
             df_current,
             on=["school_code", "class_type"],
@@ -111,31 +108,23 @@ if df_current is not None and df_last is not None:
             suffixes=("_last", "_current")
         )
 
-        # ----------------------
         # Fill NA
-        # ----------------------
         merged[f"{COUNT_COL}_last"] = merged[f"{COUNT_COL}_last"].fillna(0)
         merged[f"{COUNT_COL}_current"] = merged[f"{COUNT_COL}_current"].fillna(0)
 
-        # ----------------------
         # Diff
-        # ----------------------
         merged["diff"] = (
             merged[f"{COUNT_COL}_current"]
             - merged[f"{COUNT_COL}_last"]
         )
 
-        # ----------------------
-        # Name mapping
-        # ----------------------
+        # Mapping
         merged["class_type_name"] = merged["class_type"].map(type_map)
         merged["school_name"] = merged["school_code"].map(school_map).fillna(
             merged["school_code"].astype(str)
         )
 
-        # ======================
-        # Sidebar Filters
-        # ======================
+        # Sidebar filters
         st.sidebar.header("🔎 Filters")
 
         school_options = ["All"] + sorted(merged["school_name"].unique().tolist())
@@ -152,80 +141,32 @@ if df_current is not None and df_last is not None:
         if selected_class != "All":
             filtered = filtered[filtered["class_type_name"] == selected_class]
 
-        # ======================
         # Totals
-        # ======================
         total_current = filtered[f"{COUNT_COL}_current"].sum()
         total_last = filtered[f"{COUNT_COL}_last"].sum()
         total_diff = total_current - total_last
 
-        # ======================
-        # Weekly Totals
-        # ======================
+        # Metrics
         st.subheader("📊 Weekly Totals | 周汇总")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Current Week | 本周", int(total_current))
+        c2.metric("Last Week | 上周", int(total_last))
+        c3.metric("Difference | 变化", int(total_diff), delta=int(total_diff))
 
-        col1, col2, col3 = st.columns(3)
-
-        col1.metric("Current Week | 本周", int(total_current))
-        col2.metric("Last Week | 上周", int(total_last))
-        col3.metric(
-            "Difference | 变化",
-            int(total_diff),
-            delta=int(total_diff)
-        )
-
-        # ======================
-        # Bilingual Summary
-        # ======================
+        # Summary
         st.subheader("🤖 Auto Summary | 自动总结")
-
         if total_diff > 0:
-            st.success(
-                f"**EN:** Total classes increased by **{int(total_diff)}** "
-                f"(from {int(total_last)} to {int(total_current)})."
-            )
-            st.success(
-                f"**CN:** 课堂总数相比上一周 **增加了 {int(total_diff)} 节**，"
-                f"由 {int(total_last)} 节增长至 {int(total_current)} 节。"
-            )
+            st.success(f"EN: Total classes increased by {int(total_diff)}.")
+            st.success(f"CN: 课堂总数增加 {int(total_diff)} 节。")
         elif total_diff < 0:
-            st.warning(
-                f"**EN:** Total classes decreased by **{int(-total_diff)}** "
-                f"(from {int(total_last)} to {int(total_current)})."
-            )
-            st.warning(
-                f"**CN:** 课堂总数相比上一周 **减少了 {int(-total_diff)} 节**，"
-                f"由 {int(total_last)} 节降至 {int(total_current)} 节。"
-            )
+            st.warning(f"EN: Total classes decreased by {int(-total_diff)}.")
+            st.warning(f"CN: 课堂总数减少 {int(-total_diff)} 节。")
         else:
-            st.info("**EN:** Total class count remains unchanged.")
-            st.info("**CN:** 课堂总数与上一周保持一致。")
+            st.info("EN: No change.")
+            st.info("CN: 与上周持平。")
 
-        # ======================
-        # Top Changes
-        # ======================
-        inc = filtered[filtered["diff"] > 0].sort_values("diff", ascending=False).head(3)
-        dec = filtered[filtered["diff"] < 0].sort_values("diff").head(3)
-
-        if not inc.empty:
-            st.markdown("### 📈 Top Increases | 主要增幅来源")
-            for _, row in inc.iterrows():
-                st.markdown(
-                    f"- **{row['school_name']}** ｜ {row['class_type_name']} ： +{int(row['diff'])}"
-                )
-
-        if not dec.empty:
-            st.markdown("### 📉 Top Decreases | 主要下降来源")
-            for _, row in dec.iterrows():
-                st.markdown(
-                    f"- **{row['school_name']}** ｜ {row['class_type_name']} ： {int(row['diff'])}"
-                )
-
-        # ======================
         # Table
-        # ======================
         st.subheader("📋 Detailed Comparison | 明细对比")
-
         st.dataframe(
             filtered.sort_values("diff", ascending=False)[
                 [
@@ -241,8 +182,8 @@ if df_current is not None and df_last is not None:
         )
 
     except Exception as e:
-        st.error("❌ Failed to process data. Please check format.")
+        st.error("❌ Failed to process data.")
         st.exception(e)
 
 else:
-    st.info("👆 Please upload an Excel file or paste data to start analysis.")
+    st.info("👆 Please upload Excel or paste data to start.")
