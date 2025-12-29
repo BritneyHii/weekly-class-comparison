@@ -99,7 +99,6 @@ elif data_mode == "Paste Data":
         sep=None,
         engine="python"
     )
-    ))
 
 # ======================
 # Main Logic
@@ -202,4 +201,5 @@ if df_current is not None and df_last is not None:
 
 else:
     st.info("👆 Please upload Excel or paste data to start.")
+
 
