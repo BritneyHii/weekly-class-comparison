@@ -63,22 +63,22 @@ if data_mode == "Upload Excel":
         type=["xlsx"]
     )
 
-    if uploaded_file is not None:
+    if uploaded_file:
         df_current = pd.read_excel(uploaded_file, sheet_name="Sheet1")
         df_last = pd.read_excel(uploaded_file, sheet_name="Sheet2")
 
 # ======================
-# Paste Data
+# Paste Data (CSV / TSV)
 # ======================
-elif data_mode == "Paste Data":
-    st.markdown("### 📋 Paste Current Week Data")
+else:
+    st.markdown("### 📋 Paste Current Week Data (CSV / TSV)")
 
     current_text = st.text_area(
         "Current Week Data",
         height=180
     )
 
-    st.markdown("### 📋 Paste Last Week Data")
+    st.markdown("### 📋 Paste Last Week Data (CSV / TSV)")
 
     last_text = st.text_area(
         "Last Week Data",
@@ -103,12 +103,12 @@ elif data_mode == "Paste Data":
 # ======================
 if df_current is not None and df_last is not None:
     try:
-        # Clean columns
+        # Clean column names
         df_current.columns = df_current.columns.str.strip()
         df_last.columns = df_last.columns.str.strip()
 
         # Drop date column if exists
-        for df in [df_current, df_last]:
+        for df in (df_current, df_last):
             if "date" in df.columns:
                 df.drop(columns=["date"], inplace=True)
 
@@ -139,8 +139,8 @@ if df_current is not None and df_last is not None:
         # Sidebar filters
         st.sidebar.header("🔎 Filters")
 
-        school_options = ["All"] + sorted(merged["school_name"].unique().tolist())
-        class_options = ["All"] + sorted(merged["class_type_name"].unique().tolist())
+        school_options = ["All"] + sorted(merged["school_name"].unique())
+        class_options = ["All"] + sorted(merged["class_type_name"].unique())
 
         selected_school = st.sidebar.selectbox("School", school_options)
         selected_class = st.sidebar.selectbox("Class Type", class_options)
