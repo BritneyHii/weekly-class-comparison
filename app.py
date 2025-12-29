@@ -42,7 +42,7 @@ school_map = {
 COUNT_COL = "count(distinct class_id)"
 
 # ======================
-# Data Input Mode (FIXED)
+# Data Input Mode
 # ======================
 st.subheader("📥 Data Input Method | 数据输入方式")
 
@@ -71,34 +71,32 @@ if data_mode == "Upload Excel":
 # Paste Data
 # ======================
 elif data_mode == "Paste Data":
-    st.markdown("### 📋 Paste Current Week Data (CSV)")
+    st.markdown("### 📋 Paste Current Week Data")
 
     current_text = st.text_area(
         "Current Week Data",
-        height=180,
-        placeholder="school_code,class_type,count(distinct class_id)\n415,1,120"
+        height=180
     )
 
-    st.markdown("### 📋 Paste Last Week Data (CSV)")
+    st.markdown("### 📋 Paste Last Week Data")
 
     last_text = st.text_area(
         "Last Week Data",
-        height=180,
-        placeholder="school_code,class_type,count(distinct class_id)\n415,1,110"
+        height=180
     )
 
     if current_text.strip() and last_text.strip():
-           df_current = pd.read_csv(
-        StringIO(current_text),
-        sep=None,        # 自动识别 , 或 \t
-        engine="python"
-    )
-    
-    df_last = pd.read_csv(
-        StringIO(last_text),
-        sep=None,
-        engine="python"
-    )
+        df_current = pd.read_csv(
+            StringIO(current_text),
+            sep=None,
+            engine="python"
+        )
+
+        df_last = pd.read_csv(
+            StringIO(last_text),
+            sep=None,
+            engine="python"
+        )
 
 # ======================
 # Main Logic
@@ -108,11 +106,11 @@ if df_current is not None and df_last is not None:
         # Clean columns
         df_current.columns = df_current.columns.str.strip()
         df_last.columns = df_last.columns.str.strip()
+
         # Drop date column if exists
         for df in [df_current, df_last]:
-        if "date" in df.columns:
-        df.drop(columns=["date"], inplace=True)
-
+            if "date" in df.columns:
+                df.drop(columns=["date"], inplace=True)
 
         # Merge
         merged = df_last.merge(
@@ -201,5 +199,3 @@ if df_current is not None and df_last is not None:
 
 else:
     st.info("👆 Please upload Excel or paste data to start.")
-
-
