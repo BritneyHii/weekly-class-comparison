@@ -68,22 +68,23 @@ if data_mode == "Upload Excel":
         df_last = pd.read_excel(uploaded_file, sheet_name="Sheet2")
 
 # ======================
-# Paste Data (CSV / TSV)
+# Paste Data 
 # ======================
 else:
-    st.subheader("📋 Paste Current Week Data | 粘贴【本周】班级数量数据")
-
+    st.markdown("📋 Paste Current Week Data | 粘贴【本周】班级数量数据")
     current_text = st.text_area(
-        "Current Week Data",
-        height=180
+    label="Current Week Data",
+    height=180,
+    key="current_week_input"
     )
 
-    st.subheader("📋 Paste Last Week Data | 粘贴【上周】班级数量数据")
-
+    st.markdown("📋 Paste Last Week Data | 粘贴【上周】班级数量数据")
     last_text = st.text_area(
-        "Last Week Data",
-        height=180
+    label="Last Week Data",
+    height=180,
+    key="last_week_input"
     )
+
 
     if current_text.strip() and last_text.strip():
         df_current = pd.read_csv(
@@ -199,6 +200,7 @@ if df_current is not None and df_last is not None:
 
 else:
     st.info("👆 Please upload Excel or paste data to start.")
+
 
 
 
