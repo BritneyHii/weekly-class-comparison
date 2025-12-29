@@ -74,15 +74,13 @@ else:
     st.subheader("📋 Paste Current Week Data")
     current_text = st.text_area(
     label="Current Week Data | 粘贴本周班级数据",
-    height=180,
-    key="current_week_input"
+    height=180
     )
 
     st.subheader("📋 Paste Last Week Data")
     last_text = st.text_area(
     label="Last Week Data | 粘贴上周班级数据",
-    height=180,
-    key="last_week_input"
+    height=180
     )
 
 
@@ -200,6 +198,7 @@ if df_current is not None and df_last is not None:
 
 else:
     st.info("👆 Please upload Excel or paste data to start.")
+
 
 
 
