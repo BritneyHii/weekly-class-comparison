@@ -71,14 +71,14 @@ if data_mode == "Upload Excel":
 # Paste Data (CSV / TSV)
 # ======================
 else:
-    st.markdown("### 📋 Paste Current Week Data (CSV / TSV)")
+    st.markdown("### 📋 Paste Current Week Data | 粘贴“本周”班级数量数据")
 
     current_text = st.text_area(
         "Current Week Data",
         height=180
     )
 
-    st.markdown("### 📋 Paste Last Week Data (CSV / TSV)")
+    st.markdown("### 📋 Paste Last Week Data | 粘贴“上周”班级数量数据")
 
     last_text = st.text_area(
         "Last Week Data",
@@ -199,3 +199,4 @@ if df_current is not None and df_last is not None:
 
 else:
     st.info("👆 Please upload Excel or paste data to start.")
+
